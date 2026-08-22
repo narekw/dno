@@ -11,7 +11,7 @@ if (!API_KEY) {
   process.exit(1);
 }
 
-const MODEL = "gemini-3.4-flash";
+const MODEL = "gemini-3.6-flash";
 const URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
 
 const TOPICS = {
