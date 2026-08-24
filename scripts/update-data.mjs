@@ -12,7 +12,7 @@ if (!API_KEY) {
 }
 
 const MODEL = "claude-sonnet-5";
-const URL = "https://api.anthropic.com/v1/messages";
+const API_URL = "https://api.anthropic.com/v1/messages";
 
 const TOPICS = {
   mob: {
@@ -74,7 +74,7 @@ async function main() {
     tools: [{ type: "web_search_20250305", name: "web_search" }],
   };
 
-  const res = await fetch(URL, {
+  const res = await fetch(API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
