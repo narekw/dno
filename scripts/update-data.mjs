@@ -1,18 +1,18 @@
-// Раз в неделю: спрашивает Gemini (с поиском в интернете) о вероятности
+// Раз в неделю: спрашивает Claude (с поиском в интернете) о вероятности
 // трёх событий за последние 7 дней и перезаписывает data.json.
 //
-// Нужна переменная окружения GEMINI_API_KEY (см. README.md).
+// Нужна переменная окружения ANTHROPIC_API_KEY (см. README.md).
 
 import { writeFile, readFile } from "node:fs/promises";
 
-const API_KEY = process.env.GEMINI_API_KEY;
+const API_KEY = process.env.ANTHROPIC_API_KEY;
 if (!API_KEY) {
-  console.error("Не найден GEMINI_API_KEY в переменных окружения.");
+  console.error("Не найден ANTHROPIC_API_KEY в переменных окружения.");
   process.exit(1);
 }
 
-const MODEL = "gemini-3.6-flash";
-const URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
+const MODEL = "claude-sonnet-5";
+const URL = "https://api.anthropic.com/v1/messages";
 
 const TOPICS = {
   mob: {
@@ -44,15 +44,20 @@ function buildPrompt() {
 2. def — ${TOPICS.def.prompt}
 3. ret — ${TOPICS.ret.prompt}
 
-Ответь СТРОГО в формате JSON, без markdown-разметки, без пояснений вокруг:
+Когда закончишь анализ, в самом последнем сообщении ответь СТРОГО в формате
+JSON, без markdown-разметки, без пояснений вокруг, одной строкой:
 {"mob": <число>, "def": <число>, "ret": <число>}`;
 }
 
 function extractJson(text) {
   const cleaned = text.replace(/```json|```/g, "").trim();
-  const match = cleaned.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error("В ответе модели не найден JSON: " + text);
-  return JSON.parse(match[0]);
+  const match = cleaned.match(/\{[^{}]*\}/g);
+  if (!match || match.length === 0) {
+    throw new Error("В ответе модели не найден JSON: " + text);
+  }
+  // берём последний JSON-объект в тексте — это финальный ответ,
+  // а не что-то попавшееся по пути в рассуждениях/поиске
+  return JSON.parse(match[match.length - 1]);
 }
 
 function clampPercent(n, fallback) {
@@ -63,23 +68,36 @@ function clampPercent(n, fallback) {
 
 async function main() {
   const body = {
-    contents: [{ role: "user", parts: [{ text: buildPrompt() }] }],
-    tools: [{ google_search: {} }],
+    model: MODEL,
+    max_tokens: 1500,
+    messages: [{ role: "user", content: buildPrompt() }],
+    tools: [{ type: "web_search_20250305", name: "web_search" }],
   };
 
   const res = await fetch(URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
     body: JSON.stringify(body),
   });
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Gemini API вернул ошибку ${res.status}: ${errText}`);
+    throw new Error(`Claude API вернул ошибку ${res.status}: ${errText}`);
   }
 
   const json = await res.json();
-  const text = json.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("\n") || "";
+
+  // Ответ может содержать несколько text-блоков (между вызовами web_search).
+  // Склеиваем все text-блоки — итоговый JSON будет в последнем.
+  const text = (json.content || [])
+    .filter(block => block.type === "text")
+    .map(block => block.text)
+    .join("\n");
+
   const parsed = extractJson(text);
 
   // читаем текущий data.json, чтобы взять из него значения по умолчанию
