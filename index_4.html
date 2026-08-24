@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Часы судного дна</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #14160f;
+    --panel: #1d2016;
+    --panel-2: #23271b;
+    --line: #3a3d2e;
+    --bone: #e9e4d4;
+    --muted: #9a9c86;
+    --siren: #c8402c;
+    --siren-dim: #7a2c22;
+    --amber: #d9a441;
+    --ok: #6e8b5a;
+    --violet: #7a3fa0;
+    --violet-dark: #221327;
+    --mono: 'IBM Plex Mono', monospace;
+    --display: 'Oswald', sans-serif;
+    --body: 'IBM Plex Sans', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at 50% -10%, #262a1b 0%, var(--bg) 55%);
+    color:var(--bone);
+    font-family:var(--body);
+    min-height:100vh;
+    position:relative;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background:repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.018) 0px,
+      rgba(255,255,255,0.018) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    pointer-events:none;
+    z-index:50;
+    mix-blend-mode:overlay;
+  }
+  .noise{
+    position:fixed; inset:0; z-index:49; pointer-events:none; opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  a{color:var(--amber);}
+
+  .topbar{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 20px;
+    background:#0f110b;
+    border-bottom:1px solid var(--line);
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.08em;
+    color:var(--muted);
+    text-transform:uppercase;
+    flex-wrap:wrap;
+  }
+  .dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--siren);
+    box-shadow:0 0 8px 2px var(--siren);
+    animation:blink 1.6s infinite;
+    flex:none;
+  }
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
+  .topbar .sep{opacity:.4;}
+  .topbar .push{margin-left:auto;}
+
+  header{
+    padding:40px 20px 20px;
+    text-align:center;
+    max-width:900px;
+    margin:0 auto;
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.25em;
+    color:var(--siren);
+    text-transform:uppercase;
+    margin-bottom:18px;
+  }
+  h1{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:clamp(2.6rem, 7vw, 5.2rem);
+    line-height:0.96;
+    letter-spacing:-0.01em;
+    text-transform:uppercase;
+    margin:0 0 10px;
+    color:var(--bone);
+  }
+  h1 span{color:var(--siren);}
+  .lede{
+    font-size:16px;
+    line-height:1.6;
+    color:var(--muted);
+    max-width:620px;
+    margin:0 auto;
+  }
+
+  .overall{
+    max-width:900px;
+    margin:20px auto 0;
+    padding:18px 20px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    display:flex;
+    align-items:center;
+    gap:18px;
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .overall b{color:var(--bone); font-weight:600;}
+  .overall .needle-track{
+    flex:1;
+    height:6px;
+    background:#0f110b;
+    border:1px solid var(--line);
+    position:relative;
+  }
+  .overall .needle-fill{
+    position:absolute; inset:0;
+    background:linear-gradient(90deg,
+      var(--ok) 0%,
+      var(--amber) 20%,
+      var(--siren) 75%,
+      var(--siren-dim) 100%);
+  }
+  .overall .needle-mask{
+    position:absolute; inset:0; left:auto; width:100%;
+    background:#0f110b;
+    transition:width 1s ease;
+  }
+
+  @media (max-width:640px){
+    .overall{
+      flex-direction:column;
+      align-items:stretch;
+      gap:10px;
+    }
+    .overall .needle-track{
+      flex:none;
+      width:100%;
+    }
+    .overall b{
+      align-self:flex-end;
+    }
+  }
+
+  .clocks{
+    max-width:1180px;
+    margin:28px auto 40px;
+    padding:0 20px;
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:18px;
+  }
+  @media (max-width:940px){
+    .clocks{grid-template-columns:1fr; max-width:640px;}
+  }
+
+  .card{
+    background:linear-gradient(180deg, var(--panel-2), var(--panel));
+    border:1px solid var(--line);
+    position:relative;
+    padding:26px 22px 22px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  .card::before{
+    content:attr(data-idx);
+    position:absolute; top:14px; right:16px;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--muted);
+    letter-spacing:.1em;
+  }
+
+  .card h2{
+    font-family:var(--display);
+    font-weight:600;
+    font-size:1.5rem;
+    letter-spacing:.01em;
+    text-transform:uppercase;
+    margin:0;
+    color:var(--bone);
+    line-height:1.1;
+  }
+
+  .clockface{
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:clamp(2.1rem, 5.2vw, 2.6rem);
+    letter-spacing:.02em;
+    color:var(--bone);
+    background:#0c0d08;
+    border:1px solid var(--line);
+    padding:16px 10px;
+    text-align:center;
+    position:relative;
+    font-variant-numeric:tabular-nums;
+  }
+  .clockface.warn{ color:var(--siren); text-shadow:0 0 14px rgba(200,64,44,.55); animation:flash .5s infinite; }
+  @keyframes flash{0%,100%{opacity:1;}50%{opacity:.35;}}
+  .clockface .units{
+    display:block;
+    font-family:var(--body);
+    font-weight:400;
+    font-size:10px;
+    letter-spacing:.2em;
+    color:var(--muted);
+    margin-top:6px;
+    text-transform:uppercase;
+  }
+
+  .meter-row{
+    display:flex; align-items:center; gap:10px;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--muted);
+  }
+  .meter{
+    flex:1; height:5px; background:#0c0d08; border:1px solid var(--line); position:relative;
+  }
+  .meter i{
+    position:absolute; inset:0; width:0%;
+    background:var(--amber);
+    transition:width .6s ease;
+  }
+  .pct{color:var(--bone); font-weight:600; min-width:34px; text-align:right;}
+
+  .method{
+    max-width:900px;
+    margin:0 auto 60px;
+    padding:0 20px;
+  }
+  .method-box{
+    border:1px solid var(--line);
+    background:var(--panel);
+    padding:26px 24px;
+  }
+  .method-box h3{
+    font-family:var(--display);
+    text-transform:uppercase;
+    font-size:1.05rem;
+    letter-spacing:.05em;
+    margin:0 0 14px;
+    color:var(--bone);
+  }
+  .method-box p, .method-box li{
+    font-size:13.5px;
+    line-height:1.65;
+    color:var(--muted);
+  }
+  .scale{
+    display:flex; gap:0; margin:16px 0; flex-wrap:wrap;
+    font-family:var(--mono); font-size:11px;
+  }
+  .scale div{
+    flex:1; min-width:70px;
+    border:1px solid var(--line);
+    padding:8px 6px;
+    text-align:center;
+    color:var(--muted);
+    border-left:none;
+  }
+  .scale div:first-child{border-left:1px solid var(--line);}
+  .scale b{display:block; color:var(--bone); font-size:13px; margin-bottom:3px;}
+
+  footer{
+    text-align:center;
+    padding:30px 20px 50px;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--muted);
+    letter-spacing:.05em;
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+
+<div class="topbar">
+  <span class="dot"></span>
+  <span>СИСТЕМА НАБЛЮДЕНИЯ АКТИВНА</span>
+  <span class="sep">/</span>
+  <span id="clock-now"></span>
+  <span class="push"></span>
+  <span id="updated-label">ДАННЫЕ ОБНОВЛЕНЫ: —</span>
+</div>
+
+<header>
+  <div class="eyebrow">анализ открытых источников</div>
+  <h1>Часы <span>судного дна</span></h1>
+</header>
+
+<div class="overall">
+  <span>Общий индекс тревожности</span>
+  <div class="needle-track"><div class="needle-fill"></div><div class="needle-mask" id="overall-mask"></div></div>
+  <b id="overall-label">—</b>
+</div>
+
+<section class="clocks">
+
+  <article class="card" data-idx="01">
+    <h2>Мобилизация</h2>
+    <div class="clockface" id="face-mob">--:--:--<span class="units">чч : мм : сс</span></div>
+    <div class="meter-row">
+      <span>вероятность за 30 дней</span>
+      <div class="meter"><i id="bar-mob" style="width:0%"></i></div>
+      <span class="pct" id="pct-mob">—</span>
+    </div>
+  </article>
+
+  <article class="card" data-idx="02">
+    <h2>Ротация</h2>
+    <div class="clockface" id="face-ret">--:--:--<span class="units">чч : мм : сс</span></div>
+    <div class="meter-row">
+      <span>вероятность за 30 дней</span>
+      <div class="meter"><i id="bar-ret" style="width:0%"></i></div>
+      <span class="pct" id="pct-ret">—</span>
+    </div>
+  </article>
+
+  <article class="card" data-idx="03">
+    <h2>Дефолт</h2>
+    <div class="clockface" id="face-def">--:--:--<span class="units">чч : мм : сс</span></div>
+    <div class="meter-row">
+      <span>вероятность за 30 дней</span>
+      <div class="meter"><i id="bar-def" style="width:0%"></i></div>
+      <span class="pct" id="pct-def">—</span>
+    </div>
+  </article>
+
+</section>
+
+<div class="method">
+  <div class="method-box">
+    <h3>Как это считается</h3>
+    <p>
+      Раз в неделю ИИ анализирует публикации по каждой теме и оценивает
+      вероятность события на основе баланса аргументов. Вероятность
+      переводится в «время до» по нелинейной шкале:
+    </p>
+    <div class="scale">
+      <div><b>99%</b>1 сек</div>
+      <div><b>50%</b>3 мин</div>
+      <div><b>10%</b>10 мин</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  часы судного дна
+</footer>
+
+<script>
+  // ---- probability -> seconds, piecewise-linear over anchor points ----
+  const anchors = [[100,0],[99,1],[50,180],[30,300],[10,600]];
+  function timeForProbability(p){
+    if(p>=100) return 0;
+    if(p<=10){
+      const slope = (600-300)/(10-30);
+      return Math.max(600 + slope*(p-10), 30);
+    }
+    for(let i=0;i<anchors.length-1;i++){
+      const [p1,t1]=anchors[i], [p2,t2]=anchors[i+1];
+      if(p<=p1 && p>=p2){
+        const frac=(p1-p)/(p1-p2);
+        return t1+(t2-t1)*frac;
+      }
+    }
+    return 600;
+  }
+
+  function fmt(totalSeconds){
+    totalSeconds = Math.max(0, Math.round(totalSeconds));
+    const h = Math.floor(totalSeconds/3600);
+    const m = Math.floor((totalSeconds%3600)/60);
+    const s = totalSeconds%60;
+    const pad = n => String(n).padStart(2,'0');
+    return pad(h)+':'+pad(m)+':'+pad(s);
+  }
+
+  function jitter(base){
+    const spread = base*0.12;
+    return Math.max(base + (Math.random()*2-1)*spread, base*0.4);
+  }
+
+  // fallback values, used only if data.json can't be loaded
+  const FALLBACK = {
+    updated: "22.08.2026",
+    clocks: { mob: 35, def: 12, ret: 15 }
+  };
+
+  function boot(data){
+    const clocks = [
+      {key:'mob', p:data.clocks.mob, el:document.getElementById('face-mob'), bar:document.getElementById('bar-mob'), pct:document.getElementById('pct-mob')},
+      {key:'def', p:data.clocks.def, el:document.getElementById('face-def'), bar:document.getElementById('bar-def'), pct:document.getElementById('pct-def')},
+      {key:'ret', p:data.clocks.ret, el:document.getElementById('face-ret'), bar:document.getElementById('bar-ret'), pct:document.getElementById('pct-ret')},
+    ];
+
+    clocks.forEach(c=>{
+      c.base = timeForProbability(c.p);
+      c.remaining = c.base;
+      c.bar.style.width = c.p+'%';
+      c.pct.textContent = c.p+'%';
+      c.el.innerHTML = fmt(c.remaining)+'<span class="units">чч : мм : сс</span>';
+    });
+
+    function tick(){
+      clocks.forEach(c=>{
+        c.remaining -= 1;
+        if(c.remaining <= 0){
+          c.el.classList.add('warn');
+          c.el.innerHTML = 'ТРЕВОГА<span class="units">событие условно наступило</span>';
+          setTimeout(()=>{
+            c.el.classList.remove('warn');
+            c.remaining = jitter(c.base);
+          }, 1400);
+        } else {
+          c.el.innerHTML = fmt(c.remaining)+'<span class="units">чч : мм : сс</span>';
+        }
+      });
+    }
+    setInterval(tick, 1000);
+
+    const sortedP = clocks.map(c=>c.p).sort((a,b)=>b-a);
+    const maxP = sortedP[0];
+    const restAvg = (sortedP[1] + sortedP[2]) / 2;
+    const overall = Math.min(100, Math.round(maxP + restAvg));
+    document.getElementById('overall-mask').style.width = (100-overall)+'%';
+    const labels = [[0,'спокойно'],[20,'настороженно'],[40,'тревожно'],[60,'близко'],[80,'критично']];
+    let lbl = labels[0][1];
+    labels.forEach(([th,text])=>{ if(overall>=th) lbl = text; });
+    document.getElementById('overall-label').textContent = overall+'% · '+lbl;
+
+    document.getElementById('updated-label').textContent = 'ДАННЫЕ ОБНОВЛЕНЫ: '+data.updated;
+  }
+
+  fetch('./data.json', {cache:'no-store'})
+    .then(r => { if(!r.ok) throw new Error('no data.json'); return r.json(); })
+    .then(data => boot({
+      updated: data.updated || FALLBACK.updated,
+      clocks: {
+        mob: (data.clocks && data.clocks.mob && data.clocks.mob.p) ?? FALLBACK.clocks.mob,
+        def: (data.clocks && data.clocks.def && data.clocks.def.p) ?? FALLBACK.clocks.def,
+        ret: (data.clocks && data.clocks.ret && data.clocks.ret.p) ?? FALLBACK.clocks.ret,
+      }
+    }))
+    .catch(() => boot(FALLBACK));
+
+  function updateNow(){
+    const d = new Date();
+    const pad = n=>String(n).padStart(2,'0');
+    document.getElementById('clock-now').textContent =
+      pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+  }
+  updateNow();
+  setInterval(updateNow, 1000);
+</script>
+
+</body>
+</html>
